@@ -8,9 +8,12 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Forwards copy of the message to specified destination topic or queue.
+ */
 @Slf4j
 @RequiredArgsConstructor
-public class ForwardMessage implements MessageHandler<Message> {
+public class ForwardingHandler implements MessageHandler<Message> {
 
   @NonNull
   private String forwardTo;

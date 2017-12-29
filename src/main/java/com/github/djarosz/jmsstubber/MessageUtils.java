@@ -16,6 +16,9 @@ import lombok.SneakyThrows;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public abstract class MessageUtils {
 
+  /**
+   * Creates copy of a JMS message.
+   */
   @SneakyThrows
   public static <T extends Message> T createCopy(Session session, T message) {
     Message copy = null;
@@ -32,6 +35,19 @@ public abstract class MessageUtils {
     }
 
     return (T) copy;
+  }
+
+  @FunctionalInterface
+  public interface MessageCreator<T extends Message> {
+    T get() throws Throwable;
+  }
+
+  @SneakyThrows
+  private static <T extends Message> T copy(MessageCreator<T> creator, BiConsumer<T, T> copier, T message) {
+    T copy = creator.get();
+    copyMessageAttributes(copy, message);
+    copier.accept(copy, message);
+    return copy;
   }
 
   @SneakyThrows
@@ -63,21 +79,8 @@ public abstract class MessageUtils {
     }
   }
 
-  @FunctionalInterface
-  public interface MessageCreator<T extends Message> {
-    T get() throws Throwable;
-  }
-
   @SneakyThrows
-  private static <T extends Message> T copy(MessageCreator<T> creator, BiConsumer<T, T> copier, T message) {
-    T copy = creator.get();
-    copyMessageAttributes(copy, message);
-    copier.accept(copy, message);
-    return copy;
-  }
-
-  @SneakyThrows
-  private static void copyTextMessage(TextMessage dst, TextMessage src){
+  private static void copyTextMessage(TextMessage dst, TextMessage src) {
     dst.setText(src.getText());
   }
 

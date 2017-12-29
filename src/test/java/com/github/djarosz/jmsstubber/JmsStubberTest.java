@@ -2,9 +2,11 @@ package com.github.djarosz.jmsstubber;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.github.djarosz.jmsstubber.handler.ForwardMessage;
-import com.github.djarosz.jmsstubber.handler.MessageLogger;
-import com.github.djarosz.jmsstubber.handler.MessageStoreHandler;
+import com.github.djarosz.jmsstubber.handler.ForwardingHandler;
+import com.github.djarosz.jmsstubber.handler.GroovyHandler;
+import com.github.djarosz.jmsstubber.handler.LoggeringHandler;
+import com.github.djarosz.jmsstubber.handler.MessageCollectingHandler;
+import java.io.File;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.MessageConsumer;
@@ -25,16 +27,17 @@ public class JmsStubberTest {
 
   @Test
   public void shouldStartStubber() throws Exception {
-    MessageStoreHandler<TextMessage> messageStore = new MessageStoreHandler<>();
-    JmsStubberBuilder.forEmbeddedBroker()
+    MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
+    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
         .withBrokerName("jms-stubber")
         .destinationConfig()
-          .withCommonMessageHandler(MessageLogger.INSTANCE)
-          .withCommonMessageHandler(messageStore)
-          .withQueue("out")
-          .withQueue("in", new ForwardMessage("out"))
-        .build()
-        .initialize();
+        .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+        .withCommonMessageHandler(messageStore)
+        .withQueue("out")
+        .withQueue("in", new ForwardingHandler("out"))
+        .build();
+
+    stubber.start();
 
     Connection connection = connectionFactory().createConnection();
     connection.start();
@@ -69,32 +72,44 @@ public class JmsStubberTest {
     log.info("Closing session.");
     session.close();
     connection.stop();
+    stubber.stop();
   }
 
   @Test
   public void shouldEvaluateGroovyHandler() throws Exception {
-//    GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes/test-handler.groovy"));
-//    DestinationConfig config = DestinationConfig.builder()
-//        .name("myjms")
-//        .addQueueConfig(QueueConfig.builder()
-//            .name("out")
-//            .build())
-//        .addQueueConfig(QueueConfig.builder()
-//            .name("in")
-//            .addMessageListener(new MessageLogger())
-//            .addMessageListener(groovyHandler)
-//            .build())
-//        .build();
-//    JmsStubber jmsStubber = new JmsStubber(config);
-//
-//    jmsStubber.start();
-//
-//    jmsStubber.send("in", "<root><child>c1</child><child>c2</child></root>");
-//    TextMessage msg = jmsStubber.receive("out");
-//
-//    Thread.sleep(5000L);
-//
-//    jmsStubber.stop();
+    GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes/test-handler.groovy"));
+    MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
+    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
+        .withBrokerName("jms-stubber")
+        .destinationConfig()
+          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(messageStore)
+          .withQueue("out")
+          .withQueue("in", groovyHandler)
+        .build();
+
+    stubber.start();
+
+    Connection connection = connectionFactory().createConnection();
+    connection.start();
+    Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+    Queue inQueue = session.createQueue("in");
+    Queue outQueue = session.createQueue("out");
+
+    MessageProducer producer = session.createProducer(inQueue);
+    String xml = "<parent><child id='0'>c1</child><child id='1'>c2</child></parent>";
+    producer.send(inQueue, session.createTextMessage(xml));
+
+    MessageConsumer outConsumer = session.createConsumer(outQueue);
+
+    TextMessage response = (TextMessage) outConsumer.receive();
+
+    assertThat(response.getText().replaceAll("( |\\n)", "").toLowerCase()).isEqualTo(xml.replaceAll(" ", ""));
+
+    log.info("Closing session.");
+    session.close();
+    connection.stop();
+    stubber.stop();
   }
 
 

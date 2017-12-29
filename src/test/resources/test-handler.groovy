@@ -7,13 +7,11 @@ def child1 = xml.child[1]
 def writer = new StringWriter()
 def xmlResponse = new MarkupBuilder(writer)
 
-xmlResponse.'received-result' {
+xmlResponse.'PARENT' {
     int i = 0;
     for (child in xml.child) {
-        'child-result'(id: i++, child)
+        'CHILD'(id: i++, child)
     }
 }
 
-replyTo = "out"
-
-writer.toString()
+session.send("out", writer.toString())

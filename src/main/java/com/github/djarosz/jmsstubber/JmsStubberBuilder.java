@@ -46,16 +46,7 @@ public class JmsStubberBuilder {
     @SneakyThrows
     public JmsStubberBuilder destinationConfig() {
       embeddedBroker = true;
-      broker = new BrokerService();
-      broker.setPersistent(false);
-      broker.setBrokerName(brokerName);
-      broker.setUseJmx(false);
-      broker.addConnector("vm://" + brokerName + "?broker.persistent=false");
-
-      for (URI uri : connectorUris) {
-        broker.addConnector(uri);
-      }
-
+      broker = new InMemoryBrokerService(brokerName, connectorUris);
       return JmsStubberBuilder.this;
     }
   }
@@ -94,13 +85,9 @@ public class JmsStubberBuilder {
 
   @SneakyThrows
   public JmsStubber build() {
-    JmsStubber jmsStubber = new JmsStubber(broker, configBuilder.build());
-    if (embeddedBroker) {
-      log.info("Starting broker...");
-      broker.setStartAsync(false);
-      broker.start();
-      broker.addShutdownHook(jmsStubber::destroy);
-    }
+    JmsStubber jmsStubber = embeddedBroker
+        ? new JmsStubberWithEmbeddedBroker(broker, configBuilder.build())
+        : new DefaultJmsStubber(broker, configBuilder.build());
     return jmsStubber;
   }
 

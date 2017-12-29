@@ -7,14 +7,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+/**
+ * Logs message received message attributes.
+ */
 @Slf4j
-public class MessageLogger implements MessageHandler<Message> {
+public class LoggeringHandler implements MessageHandler<Message> {
 
-  public static final MessageLogger INSTANCE = new MessageLogger();
+  public static final LoggeringHandler INSTANCE = new LoggeringHandler();
 
   @Override
   public void handle(HandlerSession session, Message message) throws Throwable {
-    log.info("[{}]: Received message: {}", message.getJMSDestination(),
+    log.info("[{}]: Received: {}", message.getJMSDestination(),
         ToStringBuilder.reflectionToString(message, ToStringStyle.MULTI_LINE_STYLE));
   }
 }

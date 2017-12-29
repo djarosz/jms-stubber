@@ -65,7 +65,7 @@ public class HandlerSessionImpl implements HandlerSession {
   }
 
   private Destination getDestination(String name) {
-    return isQueue(name) ?getQueue(name) : getTopic(name);
+    return isQueue(name) ? getQueue(name) : getTopic(name);
   }
 
   @Override
