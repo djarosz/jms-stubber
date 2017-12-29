@@ -20,21 +20,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ActiveMQSession;
-import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.command.ActiveMQQueue;
 
 @Slf4j
 @RequiredArgsConstructor
 public class DefaultJmsStubber implements JmsStubber {
 
-  private static final String STUBBER_PROCESSED_HEADER = "JMS_stubber_processed";
-
   @NonNull
-  BrokerService broker;
-  @NonNull
-  DestinationConfig config;
-
   private ActiveMQConnectionFactory connectionFactory;
+  @NonNull
+  private DestinationConfig config;
+
   private ActiveMQConnection stubberConnection;
   private ActiveMQSession stubberSession;
 
@@ -44,7 +40,6 @@ public class DefaultJmsStubber implements JmsStubber {
   public void start() {
     log.info("Initializing JMS Stubber...");
 
-    connectionFactory = new ActiveMQConnectionFactory(broker.getVmConnectorURI());
     stubberConnection = (ActiveMQConnection) connectionFactory.createConnection();
     stubberConnection.start();
     stubberSession = (ActiveMQSession) stubberConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);

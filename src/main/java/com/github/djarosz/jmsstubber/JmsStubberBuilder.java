@@ -6,22 +6,22 @@ import java.util.List;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 @Slf4j
 public class JmsStubberBuilder {
 
   private DestinationConfig.DestinationConfigBuilder configBuilder = DestinationConfig.builder();
 
-  private BrokerService broker;
+  private ActiveMQConnectionFactory connectionFactory;
 
-  private boolean embeddedBroker;
+  private InMemoryBrokerService embeddedBrokerService;
 
   private JmsStubberBuilder() {
   }
 
-  private JmsStubberBuilder(BrokerService broker) {
-    this.broker = broker;
+  private JmsStubberBuilder(ActiveMQConnectionFactory connectionFactory) {
+    this.connectionFactory = connectionFactory;
   }
 
   public class EmbeddedBrokerBuilder {
@@ -45,8 +45,7 @@ public class JmsStubberBuilder {
 
     @SneakyThrows
     public JmsStubberBuilder destinationConfig() {
-      embeddedBroker = true;
-      broker = new InMemoryBrokerService(brokerName, connectorUris);
+      embeddedBrokerService = new InMemoryBrokerService(brokerName, connectorUris);
       return JmsStubberBuilder.this;
     }
   }
@@ -55,11 +54,11 @@ public class JmsStubberBuilder {
     return this;
   }
 
-  public static JmsStubberBuilder forBroker(BrokerService broker) {
-    return new JmsStubberBuilder(broker);
+  public static JmsStubberBuilder amqConnectionFactory(ActiveMQConnectionFactory connectionFactory) {
+    return new JmsStubberBuilder(connectionFactory);
   }
 
-  public static EmbeddedBrokerBuilder forEmbeddedBroker() {
+  public static EmbeddedBrokerBuilder embeddedBroker() {
     return new JmsStubberBuilder().embeddedBrokerBuilder();
   }
 
@@ -85,9 +84,9 @@ public class JmsStubberBuilder {
 
   @SneakyThrows
   public JmsStubber build() {
-    JmsStubber jmsStubber = embeddedBroker
-        ? new JmsStubberWithEmbeddedBroker(broker, configBuilder.build())
-        : new DefaultJmsStubber(broker, configBuilder.build());
+    JmsStubber jmsStubber = embeddedBrokerService != null
+        ? new JmsStubberWithEmbeddedBroker(embeddedBrokerService, configBuilder.build())
+        : new DefaultJmsStubber(connectionFactory, configBuilder.build());
     return jmsStubber;
   }
 

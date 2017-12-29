@@ -23,14 +23,10 @@ import org.junit.Test;
 @Slf4j
 public class JmsStubberTest {
 
-  private ConnectionFactory connectionFactory() {
-    return new ActiveMQConnectionFactory("vm://jms-stubber");
-  }
-
   @Test
   public void shouldStartStubber() throws Exception {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
-    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
+    JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withBrokerName("jms-stubber")
         .destinationConfig()
         .withCommonMessageHandler(LoggeringHandler.INSTANCE)
@@ -41,7 +37,7 @@ public class JmsStubberTest {
 
     stubber.start();
 
-    Connection connection = connectionFactory().createConnection();
+    Connection connection = vmConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
     Queue inQueue = session.createQueue("in");
@@ -81,7 +77,7 @@ public class JmsStubberTest {
   public void shouldEvaluateGroovyHandler() throws Exception {
     GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes/test-handler.groovy"));
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
-    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
+    JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withBrokerName("jms-stubber")
         .destinationConfig()
           .withCommonMessageHandler(LoggeringHandler.INSTANCE)
@@ -92,7 +88,7 @@ public class JmsStubberTest {
 
     stubber.start();
 
-    Connection connection = connectionFactory().createConnection();
+    Connection connection = vmConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
     Queue inQueue = session.createQueue("in");
@@ -118,7 +114,7 @@ public class JmsStubberTest {
   public void shouldEvaluateGroovyDefaultHandler() throws Exception {
     GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes"));
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
-    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
+    JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .destinationConfig()
           .withCommonMessageHandler(LoggeringHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
@@ -128,7 +124,7 @@ public class JmsStubberTest {
 
     stubber.start();
 
-    Connection connection = connectionFactory().createConnection();
+    Connection connection = vmConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
@@ -149,7 +145,7 @@ public class JmsStubberTest {
   public void shouldEvaluateQueueSpecificGroovyHandler() throws Exception {
     GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes"));
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
-    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
+    JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .destinationConfig()
           .withCommonMessageHandler(LoggeringHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
@@ -159,7 +155,7 @@ public class JmsStubberTest {
 
     stubber.start();
 
-    Connection connection = connectionFactory().createConnection();
+    Connection connection = vmConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
@@ -176,6 +172,34 @@ public class JmsStubberTest {
     stubber.stop();
   }
 
+  @Test
+  public void shouldSendMessageUsingTcp() throws Exception {
+    String tcpConnector = "tcp://localhost:5678";
+    JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
+        .withConnectorUri(tcpConnector)
+        .destinationConfig()
+          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withQueue("in")
+        .build();
+
+    stubber.start();
+
+    Connection connection = connectionFactory(tcpConnector).createConnection();
+    connection.start();
+    Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+    sendMessage(session, "in", "12345");
+    TextMessage received = waitMessageReceived(session, "in");
+
+    assertThat(received.getText()).isEqualTo("12345");
+    assertThat(received.getBooleanProperty(JmsStubber.STUBBER_PROCESSED_HEADER)).isTrue();
+
+    log.info("Closing session.");
+    session.close();
+    connection.stop();
+    stubber.stop();
+  }
+
   private void sendMessage(Session session, String queueName, String text) throws JMSException {
     Queue queue = session.createQueue(queueName);
     MessageProducer producer = session.createProducer(queue);
@@ -185,6 +209,14 @@ public class JmsStubberTest {
 
   private <T extends Message> T waitMessageReceived(Session session, String queueName) throws JMSException {
     return (T) session.createConsumer(session.createQueue(queueName)).receive();
+  }
+
+  private ConnectionFactory vmConnectionFactory() {
+    return new ActiveMQConnectionFactory("vm://jms-stubber");
+  }
+
+  private ConnectionFactory connectionFactory(String uri) {
+    return new ActiveMQConnectionFactory(uri);
   }
 
 }
