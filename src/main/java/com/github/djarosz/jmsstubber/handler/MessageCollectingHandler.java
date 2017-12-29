@@ -32,18 +32,23 @@ public class MessageCollectingHandler<T extends Message> implements MessageHandl
    * Returns list of messages received on specified queue or topic
    */
   public List<T> received(String destinationName) {
-    return receivedByQueue.get(destinationName);
+    List<T> messages = receivedByQueue.get(destinationName);
+    return messages == null ? Collections.emptyList() : messages;
   }
 
   /**
    * Returns all received messages on any destination.
    */
-  public List<T> eceivedAll() {
-    return receivedByQueue.values().stream()
-        .reduce(new LinkedList<>(), (acc, received) -> {
-          acc.addAll(received);
-          return acc;
-        });
+  public List<T> receivedAll() {
+    if (receivedByQueue.isEmpty()) {
+      return Collections.emptyList();
+    } else {
+      return receivedByQueue.values().stream()
+          .reduce(new LinkedList<>(), (acc, received) -> {
+            acc.addAll(received);
+            return acc;
+          });
+    }
   }
 
 }

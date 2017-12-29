@@ -9,6 +9,8 @@ import com.github.djarosz.jmsstubber.handler.MessageCollectingHandler;
 import java.io.File;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
+import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
@@ -112,5 +114,77 @@ public class JmsStubberTest {
     stubber.stop();
   }
 
+  @Test
+  public void shouldEvaluateGroovyDefaultHandler() throws Exception {
+    GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes"));
+    MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
+    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
+        .destinationConfig()
+          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(messageStore)
+          .withQueue("test.queue.out")
+          .withQueue("test.queue.in", groovyHandler)
+        .build();
+
+    stubber.start();
+
+    Connection connection = connectionFactory().createConnection();
+    connection.start();
+    Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+    sendMessage(session, "test.queue.in", "ignored");
+    waitMessageReceived(session, "test.queue.out");
+
+    assertThat(messageStore.received("test.queue.out")).hasSize(1);
+    TextMessage response = messageStore.received("test.queue.out").get(0);
+    assertThat(response.getText()).isEqualTo("default response");
+
+    log.info("Closing session.");
+    session.close();
+    connection.stop();
+    stubber.stop();
+  }
+
+  @Test
+  public void shouldEvaluateQueueSpecificGroovyHandler() throws Exception {
+    GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes"));
+    MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
+    JmsStubber stubber = JmsStubberBuilder.forEmbeddedBroker()
+        .destinationConfig()
+          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(messageStore)
+          .withQueue("my.queue.out")
+          .withQueue("my.queue.in", groovyHandler)
+        .build();
+
+    stubber.start();
+
+    Connection connection = connectionFactory().createConnection();
+    connection.start();
+    Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+    sendMessage(session, "my.queue.in", "ignored");
+    waitMessageReceived(session, "my.queue.out");
+
+    assertThat(messageStore.received("my.queue.out")).hasSize(1);
+    TextMessage response = messageStore.received("my.queue.out").get(0);
+    assertThat(response.getText()).isEqualTo("my.queue.out response");
+
+    log.info("Closing session.");
+    session.close();
+    connection.stop();
+    stubber.stop();
+  }
+
+  private void sendMessage(Session session, String queueName, String text) throws JMSException {
+    Queue queue = session.createQueue(queueName);
+    MessageProducer producer = session.createProducer(queue);
+    producer.send(queue, session.createTextMessage(text));
+    producer.close();
+  }
+
+  private <T extends Message> T waitMessageReceived(Session session, String queueName) throws JMSException {
+    return (T) session.createConsumer(session.createQueue(queueName)).receive();
+  }
 
 }

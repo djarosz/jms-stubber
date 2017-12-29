@@ -9,7 +9,6 @@ import groovy.lang.Script;
 import groovy.util.XmlSlurper;
 import groovy.util.slurpersupport.GPathResult;
 import java.io.File;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import javax.jms.Message;
@@ -53,18 +52,20 @@ public class GroovyHandler implements MessageHandler {
       log.warn("[{}]: No groovy script found.");
     }
 
-    Binding binding = new Binding();
-    GroovyShell shell = new GroovyShell(binding);
+    log.info("[{}]: Executing script: {}", message.getJMSDestination(), scriptFile.get().getAbsoluteFile());
 
+    Binding binding = new Binding();
     binding.setVariable("session", session);
     binding.setVariable("log", log);
     binding.setVariable("msg", enhanceMessage(message));
 
+    GroovyShell shell = new GroovyShell(binding);
     Script script = shell.parse(scriptFile.get());
-    script.setBinding(binding);
-    Object result = script.run();
 
-    log.info("[{}]: Script result: {}", message.getJMSDestination(), Objects.toString(result));
+    script.setBinding(binding);
+    script.run();
+
+    log.info("[{}]: Script executed");
   }
 
   private Optional<File> getScriptFile(Message message) throws Exception {
