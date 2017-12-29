@@ -2,7 +2,7 @@ package com.github.djarosz.jmsstubber.handler;
 
 import com.github.djarosz.jmsstubber.HandlerSession;
 import com.github.djarosz.jmsstubber.MessageHandler;
-import com.github.djarosz.jmsstubber.MessageUtils;
+import com.github.djarosz.jmsstubber.util.MessageUtils;
 import javax.jms.Message;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

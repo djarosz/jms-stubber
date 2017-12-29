@@ -1,10 +1,9 @@
 package com.github.djarosz.jmsstubber;
 
+import com.github.djarosz.jmsstubber.util.MessageUtils;
+import com.github.djarosz.jmsstubber.util.StreamUtils;
 import java.util.Collections;
-import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.jms.Destination;
@@ -24,7 +23,7 @@ import org.apache.activemq.command.ActiveMQQueue;
 
 @Slf4j
 @RequiredArgsConstructor
-public class DefaultJmsStubber implements JmsStubber {
+public class JmsStubberWithConnectionFactory implements JmsStubber {
 
   @NonNull
   private ActiveMQConnectionFactory connectionFactory;
@@ -75,19 +74,17 @@ public class DefaultJmsStubber implements JmsStubber {
       log.info("Stubbing queue: {}", queueConfig.getName());
       ActiveMQQueue queue = new ActiveMQQueue(queueConfig.getName() + "?consumer.priority=100");
 
-      if (!config.getQueues().isEmpty() || !queueConfig.getMessageHandlers().isEmpty()) {
-        MessageConsumer consumer = stubberSession.createConsumer(queue, STUBBER_PROCESSED_HEADER + " IS NULL");
-        MessageListener handlerChainListener = message -> {
-          HandlerSessionImpl handlerSession = new HandlerSessionImpl(stubberConnection);
-          mergeStreams(
-              streamOf(config.getCommonMessageHandlers()),
-              streamOf(queueConfig.getMessageHandlers()),
-              Stream.of(MarkMessageAsHandledByJmsStubber.INSTANCE))
-              .forEach(executeHandler(handlerSession, message));
-          handlerSession.close();
-        };
-        consumer.setMessageListener(handlerChainListener);
-      }
+      MessageConsumer consumer = stubberSession.createConsumer(queue, STUBBER_PROCESSED_HEADER + " IS NULL");
+      MessageListener handlerChainListener = message -> {
+        HandlerSessionImpl handlerSession = new HandlerSessionImpl(stubberConnection);
+        StreamUtils.mergeAsStream(
+            config.getCommonMessageHandlers(),
+            queueConfig.getMessageHandlers(),
+            Collections.singleton(MarkMessageAsHandledByJmsStubber.INSTANCE))
+            .forEach(executeHandler(handlerSession, message));
+        handlerSession.close();
+      };
+      consumer.setMessageListener(handlerChainListener);
     }
   }
 
@@ -102,17 +99,6 @@ public class DefaultJmsStubber implements JmsStubber {
         log.error("[{}]: Error while calling handler.", destination, e);
       }
     };
-  }
-
-  private <T> Stream<T> streamOf(List<T> list) {
-    return (list == null ? Collections.<T>emptyList() : list).stream();
-  }
-
-  private <T> Stream<T> mergeStreams(Stream<T> head, Stream<T>... tail) {
-    if (tail == null) {
-      return head;
-    }
-    return Stream.concat(head, Stream.of(tail).flatMap(Function.identity()));
   }
 
   private static class MarkMessageAsHandledByJmsStubber implements MessageHandler {

@@ -1,4 +1,4 @@
-package com.github.djarosz.jmsstubber;
+package com.github.djarosz.jmsstubber.util;
 
 import java.util.Enumeration;
 import java.util.function.BiConsumer;
