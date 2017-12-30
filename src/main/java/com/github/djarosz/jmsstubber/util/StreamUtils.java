@@ -6,9 +6,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-/**
- * Stream utils.
- */
 public interface StreamUtils {
 
   static <T> Stream<T> streamOf(Collection<T> items) {
@@ -30,7 +27,7 @@ public interface StreamUtils {
   }
 
   static <T> Stream<T> merge(Collection<Stream<T>> streams) {
-    if (streams == null || streams.isEmpty()) {
+    if (streams == null) {
       return Stream.empty();
     }
     return streams.stream().flatMap(Function.identity());
@@ -40,6 +37,6 @@ public interface StreamUtils {
     if (streams == null) {
       return Stream.empty();
     }
-    return Stream.of(streams).flatMap(Function.identity());
+    return Stream.of(streams).filter(Objects::nonNull).flatMap(Function.identity());
   }
 }
