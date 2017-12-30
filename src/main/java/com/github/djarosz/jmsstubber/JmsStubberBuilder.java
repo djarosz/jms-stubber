@@ -1,12 +1,13 @@
 package com.github.djarosz.jmsstubber;
 
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.activemq.ActiveMQConnectionFactory;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.activemq.ActiveMQConnectionFactory;
 
 @Slf4j
 public class JmsStubberBuilder {
@@ -44,7 +45,7 @@ public class JmsStubberBuilder {
     }
 
     @SneakyThrows
-    public JmsStubberBuilder destinationConfig() {
+    public JmsStubberBuilder withQueues() {
       embeddedBrokerService = new InMemoryBrokerService(brokerName, connectorUris);
       return JmsStubberBuilder.this;
     }

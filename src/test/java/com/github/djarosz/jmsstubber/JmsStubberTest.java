@@ -1,24 +1,17 @@
 package com.github.djarosz.jmsstubber;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.github.djarosz.jmsstubber.handler.ForwardingHandler;
 import com.github.djarosz.jmsstubber.handler.GroovyHandler;
 import com.github.djarosz.jmsstubber.handler.LoggeringHandler;
 import com.github.djarosz.jmsstubber.handler.MessageCollectingHandler;
-import java.io.File;
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.junit.Test;
+
+import javax.jms.*;
+import java.io.File;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 public class JmsStubberTest {
@@ -28,11 +21,11 @@ public class JmsStubberTest {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withBrokerName("jms-stubber")
-        .destinationConfig()
-        .withCommonMessageHandler(LoggeringHandler.INSTANCE)
-        .withCommonMessageHandler(messageStore)
-        .withQueue("out")
-        .withQueue("in", new ForwardingHandler("out"))
+        .withQueues()
+          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(messageStore)
+          .withQueue("out")
+          .withQueue("in", new ForwardingHandler("out"))
         .build();
 
     stubber.start();
@@ -79,7 +72,7 @@ public class JmsStubberTest {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withBrokerName("jms-stubber")
-        .destinationConfig()
+        .withQueues()
           .withCommonMessageHandler(LoggeringHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("out")
@@ -115,7 +108,7 @@ public class JmsStubberTest {
     GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes"));
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
-        .destinationConfig()
+        .withQueues()
           .withCommonMessageHandler(LoggeringHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("test.queue.out")
@@ -146,7 +139,7 @@ public class JmsStubberTest {
     GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes"));
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
-        .destinationConfig()
+        .withQueues()
           .withCommonMessageHandler(LoggeringHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("my.queue.out")
@@ -177,7 +170,7 @@ public class JmsStubberTest {
     String tcpConnector = "tcp://localhost:5678";
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withConnectorUri(tcpConnector)
-        .destinationConfig()
+        .withQueues()
           .withCommonMessageHandler(LoggeringHandler.INSTANCE)
           .withQueue("in")
         .build();
