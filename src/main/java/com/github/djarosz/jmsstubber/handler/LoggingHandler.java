@@ -11,9 +11,9 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  * Logs message received message attributes.
  */
 @Slf4j
-public class LoggeringHandler implements MessageHandler<Message> {
+public class LoggingHandler implements MessageHandler<Message> {
 
-  public static final LoggeringHandler INSTANCE = new LoggeringHandler();
+  public static final LoggingHandler INSTANCE = new LoggingHandler();
 
   @Override
   public void handle(HandlerSession session, Message message) throws Throwable {

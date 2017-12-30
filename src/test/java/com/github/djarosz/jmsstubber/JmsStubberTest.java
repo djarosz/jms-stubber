@@ -1,20 +1,23 @@
 package com.github.djarosz.jmsstubber;
 
-import com.github.djarosz.jmsstubber.handler.ForwardingHandler;
-import com.github.djarosz.jmsstubber.handler.GroovyHandler;
-import com.github.djarosz.jmsstubber.handler.LoggeringHandler;
-import com.github.djarosz.jmsstubber.handler.MessageCollectingHandler;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.junit.Test;
-
-import javax.jms.*;
-import java.io.File;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.djarosz.jmsstubber.handler.ForwardingHandler;
+import com.github.djarosz.jmsstubber.handler.GroovyHandler;
+import com.github.djarosz.jmsstubber.handler.LoggingHandler;
+import com.github.djarosz.jmsstubber.handler.MessageCollectingHandler;
+import java.io.File;
+import javax.jms.Connection;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
+import javax.jms.Queue;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
+
 @Slf4j
-public class JmsStubberTest {
+public class JmsStubberTest extends BaseJmsStubberTest {
 
   @Test
   public void shouldStartStubber() throws Exception {
@@ -22,7 +25,7 @@ public class JmsStubberTest {
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withBrokerName("jms-stubber")
         .withQueues()
-          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("out")
           .withQueue("in", new ForwardingHandler("out"))
@@ -73,7 +76,7 @@ public class JmsStubberTest {
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withBrokerName("jms-stubber")
         .withQueues()
-          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("out")
           .withQueue("in", groovyHandler)
@@ -109,7 +112,7 @@ public class JmsStubberTest {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withQueues()
-          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("test.queue.out")
           .withQueue("test.queue.in", groovyHandler)
@@ -140,7 +143,7 @@ public class JmsStubberTest {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withQueues()
-          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("my.queue.out")
           .withQueue("my.queue.in", groovyHandler)
@@ -171,7 +174,7 @@ public class JmsStubberTest {
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
         .withConnectorUri(tcpConnector)
         .withQueues()
-          .withCommonMessageHandler(LoggeringHandler.INSTANCE)
+          .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withQueue("in")
         .build();
 
@@ -191,25 +194,6 @@ public class JmsStubberTest {
     session.close();
     connection.stop();
     stubber.stop();
-  }
-
-  private void sendMessage(Session session, String queueName, String text) throws JMSException {
-    Queue queue = session.createQueue(queueName);
-    MessageProducer producer = session.createProducer(queue);
-    producer.send(queue, session.createTextMessage(text));
-    producer.close();
-  }
-
-  private <T extends Message> T waitMessageReceived(Session session, String queueName) throws JMSException {
-    return (T) session.createConsumer(session.createQueue(queueName)).receive();
-  }
-
-  private ConnectionFactory vmConnectionFactory() {
-    return new ActiveMQConnectionFactory("vm://jms-stubber");
-  }
-
-  private ConnectionFactory connectionFactory(String uri) {
-    return new ActiveMQConnectionFactory(uri);
   }
 
 }

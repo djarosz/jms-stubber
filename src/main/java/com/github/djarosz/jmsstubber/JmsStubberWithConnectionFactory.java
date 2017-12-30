@@ -110,7 +110,7 @@ public class JmsStubberWithConnectionFactory implements JmsStubber {
       copy.setBooleanProperty(STUBBER_PROCESSED_HEADER, true);
       copy.setJMSMessageID(null);
       copy.setJMSDestination(null);
-      log.debug("[{}]: Resending message same queue", message.getJMSDestination());
+      log.debug("[{}]: Resending message to the same queue", message.getJMSDestination());
       session.send(message.getJMSDestination(), copy);
     }
   }

@@ -29,7 +29,7 @@ import org.apache.activemq.command.ActiveMQDestination;
  *
  * <p>If specified location is a Directory then following rules apply:
  * <li>{queueName}.groovy will be called if it exists
- * <li> </li> default.groovy - script will be called if it exists
+ * <li>default.groovy - script will be called if it exists
  *
  * <p>These variables are available during script execution:
  * <li> msg - received JMS message
