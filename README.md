@@ -106,7 +106,7 @@ You can run JmsStubber in serwer mode. First prepare simple properties file with
 queue/topic configuration. And then execute following command;
 
 ```bash
-java -jar jms-stubber-<version>.jar stubber.properties
+java -jar jms-stubber-<version>-runner.jar stubber.properties
 ```
 
 Not that when using *com.github.djarosz.jmsstubber.handler.GroovyHandler* you can edit
@@ -136,6 +136,7 @@ queue.in.handler.1=com.github.djarosz.jmsstubber.handler.GroovyHandler,target/te
 
 ## TODO
 - support for topics
+- error handling
 
 ## License
 
