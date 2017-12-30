@@ -1,7 +1,8 @@
 # JMS Stubber
 
 *JMS Stubber* allow you to stub JMS messaging. Eg. If your application communicates via JMS with
-external system in request-response manner. You can use *JMS Stubber to 
+external system in request-response manner you can use *JMS Stubber to build and send response
+to response queue upon receiving message in request queue
 
 Each destination (queue or topic) is assigned list of *MessageHandlers*. Handlers execute
 in the order in which they were defined. You can define *common handlers* which 
@@ -144,14 +145,19 @@ In above examples *queue.<queue_key>.handler.X* has a special format:
 is not very sophisticated.
 
 ## TODO
-- support for topics
 - message senders - idea is to be able to insert new messags to queue on demand.
   Currently you can only insert messages upon receiving another message.
   Some ideas:
-  - TimerTask periodicly executing groovy script
-  - somce kind of REST interface to insert text messages
+  - command line to insert text message to queue. Text can me readed from
+    - command parameters
+    - file passed as command parameter
+    - text piped to as stdin
+    - executing groovy script
+  - TimerTask periodicly executing groovy script which can insert new message
+- support for topics
+- auto-destination creation and attaching common handlers on queue created event
 - error handling
-- better docs/better english :)
+- better docs
 
 ## License
 
