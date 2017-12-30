@@ -3,8 +3,6 @@ package com.github.djarosz.jmsstubber;
 import com.github.djarosz.jmsstubber.util.Try;
 import com.github.djarosz.jmsstubber.util.Try.ThrowingSupplier;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -116,17 +114,11 @@ public class JmStubberPropertyConfigurer {
       }
 
       Class paramType = constructor.getParameterTypes()[i];
-      constructorArgs[i] = Stream.<ThrowingSupplier>of(
-          () -> {
-            Constructor stringConstructor = paramType.getConstructor(String.class);
-            return stringConstructor.newInstance(stringParamValue);
-          },
-          () -> {
-            Method valueOfMethod = paramType.getMethod("valueOf", String.class);
-            return Modifier.isStatic(valueOfMethod.getModifiers())
-                ? valueOfMethod.invoke(null, stringParamValue) : null;
-          }
-      )
+      constructorArgs[i] = Stream
+          .<ThrowingSupplier>of(
+              () -> String.class.isAssignableFrom(paramType) ? stringParamValue : null,
+              () -> paramType.getConstructor(String.class).newInstance(stringParamValue),
+              () -> paramType.getMethod("valueOf", String.class).invoke(null, stringParamValue))
           .map(Try::orNull)
           .filter(Objects::nonNull)
           .findFirst()

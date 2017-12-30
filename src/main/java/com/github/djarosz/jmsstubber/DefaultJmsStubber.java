@@ -23,7 +23,7 @@ import org.apache.activemq.command.ActiveMQQueue;
 
 @Slf4j
 @RequiredArgsConstructor
-public class JmsStubberWithConnectionFactory implements JmsStubber {
+public class DefaultJmsStubber implements JmsStubber {
 
   @NonNull
   private ActiveMQConnectionFactory connectionFactory;

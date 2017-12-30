@@ -86,7 +86,7 @@ public class JmsStubberBuilder {
   public JmsStubber build() {
     JmsStubber jmsStubber = embeddedBrokerService != null
         ? new JmsStubberWithEmbeddedBroker(embeddedBrokerService, configBuilder.build())
-        : new JmsStubberWithConnectionFactory(connectionFactory, configBuilder.build());
+        : new DefaultJmsStubber(connectionFactory, configBuilder.build());
     return jmsStubber;
   }
 

@@ -1,22 +1,22 @@
 # JMS Stubber
 
-*JMS Stubber* allow you to stub JMS messaging. If your aplication communicates via JMS with
-external system. 
+*JMS Stubber* allow you to stub JMS messaging. Eg. If your application communicates via JMS with
+external system in request-response manner. You can use *JMS Stubber to 
 
-Is assumes each queue/topic is assigned list of *MessageHandlers*. Each handler executes
-in the order in which the were defined. You can define *common handlers* 
-executed for every queue and per *destination handlers* (queue/topic). *common handlers* are
-executed first. Original JMS message is left in the queue for consumption by external systems.
-This is done by resending handled message to the original destination but addig special JMS Header
-so handlers wont execute infinitely. 
+Each destination (queue or topic) is assigned list of *MessageHandlers*. Handlers execute
+in the order in which they were defined. You can define *common handlers* which 
+execute for every messag in every queue. You can also define destination specific *destination handlers* (queue/topic).
+*common handlers* are executed first. Original JMS message is left in the queue for
+consumption by external systems. This is done by resending handled message to the 
+original destination but addig special JMS header so handlers will not be exeuted second time causing
+a infinite loop of execution. 
 
-*JMS Stubber* is based on [ActiveMQ](http://activemq.apache.org) so it supports any 
-(transport protocol)[http://activemq.apache.org/protocols.html]
-which is supported by [ActiveMQ](http://activemq.apache.org). 
-To enable specific transport protocol support some more dependecies migh bee needed 
-(only tested using tcp wich openwire and vm transports). You specify transport protocol
-by *ConnectorUri* property of the JmsStubberBuilder or property in configuration file when
-JMSStubber is run in server mode.
+*JMS Stubber* is based on [ActiveMQ](http://activemq.apache.org) so it supports all *ActiveMQ*
+[transport protocol](http://activemq.apache.org/protocols.html).
+To enable specific transport protocol support some more dependecies migh bee needed on your classpath.
+(only tested using tcp/openwire and vm transports). You specify transport protocol
+by *connectorUri* property of the *JmsStubberBuilder* or property in configuration file when
+*JMS Stubber* is run in server mode.
 
 There are two ways to configure and execute *JMS Stubber*:
 
@@ -26,22 +26,23 @@ There are two ways to configure and execute *JMS Stubber*:
   *com.github.djarosz.jmsstubber.JmStubberRunner* 
 
 There are also two ways to use ActiveMQ
-- use embbedded broker (*JmsStubberBuilder.embeddedBroker()*)
+- use embbedded broker (*JmsStubberBuilder.embeddedBroker()* or **not** setting 
+  *connection.factory.uri* in server mode)
 - (not tested) use remote ActiveMQ broker (*JmsStubberBuilder.amqConnectionFactory()* 
   or setting *connection.factory.uri* in server mode)
 
 ### Available message handlers 
 
-- LoggingHandler - Logs received message ([see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/LoggingHandler.java))
-- ForwardingHandler - Forwards message to specified destination ([see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/ForwardingHandler.java))
-- MessageCollectingHandler - Used for testing stores every received message in *LinkedList* ([see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/MessageCollectingHandler .java))
-- GroovyHandler - Executes groovy script for every (evaluated on every message) ([see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/GroovyHandler .java))
+- LoggingHandler - Logs received message [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/LoggingHandler.java)
+- ForwardingHandler - Forwards message to specified destination [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/ForwardingHandler.java)
+- MessageCollectingHandler - Used for testing stores every received message in *LinkedList* [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/MessageCollectingHandler.java)
+- GroovyHandler - Executes groovy script for every (evaluated on every message) [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/GroovyHandler.java)
 
 ### GroovyHandler
 
-This handler needs more explanation. Please see ([see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/GroovyHandler .java))
+This handler needs more explanation. Please [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/GroovyHandler.java)
 
-For every message received dynamicly compiled groovy script is evaluated.
+For every message received dynamically compiled groovy script is evaluated.
 This allows to dynamically alter jms-stubber behaviour with out need for restart and reconfiguration.
 
 Handler requires script location. If specified location is a File then this script will be used.
@@ -55,7 +56,7 @@ These variables are available during script execution:
 - *session* - [HandlerSession](src/main/java/com/github/djarosz/jmsstubber/HandlerSession.java)
 - *log* - slf4j logger
 
-*Example script*
+*Example script - which send response to *out* queue upon receiving message*
 ```groovy
 import groovy.xml.MarkupBuilder
 
@@ -133,10 +134,24 @@ queue.out.name=test.queue.out
 queue.in.name=test.queue.in
 queue.in.handler.1=com.github.djarosz.jmsstubber.handler.GroovyHandler,target/test-classes
 ```
+In above examples *queue.<queue_key>.handler.X* has a special format:
+
+```
+<class.name>,<constuctor_param1>,<constructor_param2>,...
+```
+
+**NOTE** For now conversion of constructor parameters from string to object values
+is not very sophisticated.
 
 ## TODO
 - support for topics
+- message senders - idea is to be able to insert new messags to queue on demand.
+  Currently you can only insert messages upon receiving another message.
+  Some ideas:
+  - TimerTask periodicly executing groovy script
+  - somce kind of REST interface to insert text messages
 - error handling
+- better docs/better english :)
 
 ## License
 

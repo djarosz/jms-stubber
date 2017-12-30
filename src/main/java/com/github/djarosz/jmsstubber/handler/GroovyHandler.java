@@ -22,10 +22,12 @@ import org.apache.activemq.command.ActiveMQDestination;
 
 
 /**
- * For every message received dynamicly compiled groovy script is evaluated.
- * This allows to dynamically alter jms-stubber behaviour with out need for restart and reconfiguration.
+ * For every message received dynamically compiled groovy script is evaluated.
+ * This allows to dynamically alter jms-stubber behaviour with out need for restart
+ * and reconfiguration.
  *
- * <p>Handler requires script location. If specified location is a File then this script will be used.
+ * <p>Handler requires script location. If specified location is a File
+ * then this script will be used.
  *
  * <p>If specified location is a Directory then following rules apply:
  * <li>{queueName}.groovy will be called if it exists

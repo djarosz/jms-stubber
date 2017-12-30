@@ -7,7 +7,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 
 @Slf4j
-public class JmsStubberWithEmbeddedBroker extends JmsStubberWithConnectionFactory {
+public class JmsStubberWithEmbeddedBroker extends DefaultJmsStubber {
 
   private BrokerService broker;
 
