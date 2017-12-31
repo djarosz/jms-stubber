@@ -1,5 +1,7 @@
 package com.github.djarosz.jmsstubber;
 
+import javax.jms.ConnectionFactory;
+
 public interface JmsStubber {
 
   /**
@@ -7,6 +9,8 @@ public interface JmsStubber {
    * are reinserted into original queue with this header set to "true". This avoids infinite handler executions.
    */
   String STUBBER_PROCESSED_HEADER = "JMS_stubber_processed";
+
+  ConnectionFactory getConnectionFactory();
 
   void start();
 

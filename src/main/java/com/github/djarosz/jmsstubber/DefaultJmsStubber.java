@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -32,6 +33,11 @@ public class DefaultJmsStubber implements JmsStubber {
 
   private ActiveMQConnection stubberConnection;
   private ActiveMQSession stubberSession;
+
+  @Override
+  public ConnectionFactory getConnectionFactory() {
+    return connectionFactory;
+  }
 
   @Override
   @PostConstruct

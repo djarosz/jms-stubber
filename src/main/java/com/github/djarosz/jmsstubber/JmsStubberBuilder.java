@@ -3,6 +3,7 @@ package com.github.djarosz.jmsstubber;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,7 @@ public class JmsStubberBuilder {
   }
 
   public class EmbeddedBrokerBuilder {
-    private String brokerName = "jms-stubber";
+    private String brokerName = "jms-stubber-" + UUID.randomUUID().toString().replaceAll(":", "");
     private List<URI> connectorUris = new ArrayList<>();
 
     public EmbeddedBrokerBuilder withBrokerName(String brokerName) {

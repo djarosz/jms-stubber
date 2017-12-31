@@ -8,12 +8,10 @@ import com.github.djarosz.jmsstubber.handler.LoggingHandler;
 import com.github.djarosz.jmsstubber.handler.MessageCollectingHandler;
 import java.io.File;
 import javax.jms.Connection;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.activemq.ActiveMQConnectionFactory;
 import org.junit.Test;
 
 @Slf4j
@@ -23,7 +21,6 @@ public class JmsStubberTest extends BaseJmsStubberTest {
   public void shouldStartStubber() throws Exception {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
-        .withBrokerName("jms-stubber")
         .withQueues()
           .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
@@ -33,21 +30,15 @@ public class JmsStubberTest extends BaseJmsStubberTest {
 
     stubber.start();
 
-    Connection connection = vmConnectionFactory().createConnection();
+    Connection connection = stubber.getConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-    Queue inQueue = session.createQueue("in");
-    Queue outQueue = session.createQueue("out");
 
-    MessageProducer producer = session.createProducer(inQueue);
     String text = "text to be sent to destinations for testing";
-    producer.send(inQueue, session.createTextMessage(text));
+    sendMessage(session, "in", text);
 
-    MessageConsumer outConsumer = session.createConsumer(outQueue);
-    MessageConsumer inConsumer = session.createConsumer(inQueue);
-
-    TextMessage receivedByOut = (TextMessage) outConsumer.receive();
-    TextMessage receivedByIn = (TextMessage) inConsumer.receive();
+    TextMessage receivedByIn = waitMessageReceived(session, "in");
+    TextMessage receivedByOut = waitMessageReceived(session, "out");
 
     assertThat(receivedByIn.getText()).isEqualTo(text);
     assertThat(receivedByOut.getText()).isEqualTo(text);
@@ -63,7 +54,6 @@ public class JmsStubberTest extends BaseJmsStubberTest {
     assertThat(receivedByOut.getText()).isEqualTo(text);
     assertThat(receivedByOut.getJMSMessageID()).isNotEqualTo(receivedByIn.getJMSMessageID());
 
-    log.info("Closing session.");
     session.close();
     connection.stop();
     stubber.stop();
@@ -74,7 +64,6 @@ public class JmsStubberTest extends BaseJmsStubberTest {
     GroovyHandler groovyHandler = new GroovyHandler(new File("target/test-classes/test-handler.groovy"));
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
-        .withBrokerName("jms-stubber")
         .withQueues()
           .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
@@ -84,23 +73,16 @@ public class JmsStubberTest extends BaseJmsStubberTest {
 
     stubber.start();
 
-    Connection connection = vmConnectionFactory().createConnection();
+    Connection connection = stubber.getConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-    Queue inQueue = session.createQueue("in");
-    Queue outQueue = session.createQueue("out");
 
-    MessageProducer producer = session.createProducer(inQueue);
     String xml = "<parent><child id='0'>c1</child><child id='1'>c2</child></parent>";
-    producer.send(inQueue, session.createTextMessage(xml));
-
-    MessageConsumer outConsumer = session.createConsumer(outQueue);
-
-    TextMessage response = (TextMessage) outConsumer.receive();
+    sendMessage(session, "in", xml);
+    TextMessage response = waitMessageReceived(session, "out");
 
     assertThat(response.getText().replaceAll("( |\\n)", "").toLowerCase()).isEqualTo(xml.replaceAll(" ", ""));
 
-    log.info("Closing session.");
     session.close();
     connection.stop();
     stubber.stop();
@@ -120,18 +102,16 @@ public class JmsStubberTest extends BaseJmsStubberTest {
 
     stubber.start();
 
-    Connection connection = vmConnectionFactory().createConnection();
+    Connection connection = stubber.getConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
     sendMessage(session, "test.queue.in", "ignored");
-    waitMessageReceived(session, "test.queue.out");
+    TextMessage response = waitMessageReceived(session, "test.queue.out");
 
     assertThat(messageStore.received("test.queue.out")).hasSize(1);
-    TextMessage response = messageStore.received("test.queue.out").get(0);
     assertThat(response.getText()).isEqualTo("default response");
 
-    log.info("Closing session.");
     session.close();
     connection.stop();
     stubber.stop();
@@ -151,7 +131,7 @@ public class JmsStubberTest extends BaseJmsStubberTest {
 
     stubber.start();
 
-    Connection connection = vmConnectionFactory().createConnection();
+    Connection connection = stubber.getConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
@@ -180,7 +160,7 @@ public class JmsStubberTest extends BaseJmsStubberTest {
 
     stubber.start();
 
-    Connection connection = connectionFactory(tcpConnector).createConnection();
+    Connection connection = new ActiveMQConnectionFactory(tcpConnector).createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
@@ -190,7 +170,6 @@ public class JmsStubberTest extends BaseJmsStubberTest {
     assertThat(received.getText()).isEqualTo("12345");
     assertThat(received.getBooleanProperty(JmsStubber.STUBBER_PROCESSED_HEADER)).isTrue();
 
-    log.info("Closing session.");
     session.close();
     connection.stop();
     stubber.stop();

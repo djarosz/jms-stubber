@@ -67,7 +67,7 @@ public class GroovyHandler implements MessageHandler {
     script.setBinding(binding);
     script.run();
 
-    log.info("[{}]: Script executed");
+    log.info("[{}]: Script executed", message.getJMSDestination());
   }
 
   private Optional<File> getScriptFile(Message message) throws Exception {

@@ -24,12 +24,13 @@ public class JmStubberPropertyConfigurerTest extends BaseJmsStubberTest {
     JmsStubber stubber = JmStubberPropertyConfigurer.build(props);
     stubber.start();
 
-    Connection connection = vmConnectionFactory().createConnection();
+    Connection connection = stubber.getConnectionFactory().createConnection();
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
     sendMessage(session, "test.queue.in", "ignored");
     TextMessage response  = waitMessageReceived(session, "test.queue.out");
+
     assertThat(response.getText()).isEqualTo("default response");
 
     session.close();
