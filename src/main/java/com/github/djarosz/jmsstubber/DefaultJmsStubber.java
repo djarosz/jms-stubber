@@ -1,7 +1,7 @@
 package com.github.djarosz.jmsstubber;
 
 import com.github.djarosz.jmsstubber.util.MessageUtils;
-import com.github.djarosz.jmsstubber.util.StreamUtils;
+import com.github.djarosz.jmsstubber.util.Streams;
 import java.util.Collections;
 import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
@@ -83,7 +83,7 @@ public class DefaultJmsStubber implements JmsStubber {
       MessageConsumer consumer = stubberSession.createConsumer(queue, STUBBER_PROCESSED_HEADER + " IS NULL");
       MessageListener handlerChainListener = message -> {
         HandlerSessionImpl handlerSession = new HandlerSessionImpl(stubberConnection);
-        StreamUtils.mergeAsStream(
+        Streams.mergeAsStream(
             config.getCommonMessageHandlers(),
             queueConfig.getMessageHandlers(),
             Collections.singleton(MarkMessageAsHandledByJmsStubber.INSTANCE))
@@ -108,7 +108,7 @@ public class DefaultJmsStubber implements JmsStubber {
   }
 
   private static class MarkMessageAsHandledByJmsStubber implements MessageHandler {
-    public static final MarkMessageAsHandledByJmsStubber INSTANCE = new MarkMessageAsHandledByJmsStubber();
+    static final MarkMessageAsHandledByJmsStubber INSTANCE = new MarkMessageAsHandledByJmsStubber();
 
     @Override
     public void handle(HandlerSession session, Message message) throws Throwable {

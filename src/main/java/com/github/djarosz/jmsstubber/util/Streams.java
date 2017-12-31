@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public interface StreamUtils {
+public interface Streams {
 
   static <T> Stream<T> streamOf(Collection<T> items) {
     return (items == null ? Collections.<T>emptyList() : items).stream();
