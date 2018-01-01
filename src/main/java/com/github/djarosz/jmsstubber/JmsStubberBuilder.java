@@ -26,7 +26,7 @@ public class JmsStubberBuilder {
   }
 
   public class EmbeddedBrokerBuilder {
-    private String brokerName = "jms-stubber-" + UUID.randomUUID().toString().replaceAll(":", "");
+    private String brokerName = "jms-stubber-" + UUID.randomUUID().toString();
     private List<URI> connectorUris = new ArrayList<>();
 
     public EmbeddedBrokerBuilder withBrokerName(String brokerName) {

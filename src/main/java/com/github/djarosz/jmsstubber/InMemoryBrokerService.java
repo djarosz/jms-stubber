@@ -23,6 +23,7 @@ public class InMemoryBrokerService extends BrokerService {
     setBrokerName(brokerName);
     setUseJmx(false);
     setStartAsync(false);
+    setAdvisorySupport(true);
     addConnector("vm://" + brokerName + "?broker.persistent=false");
 
     if (connectorUris != null) {

@@ -18,6 +18,45 @@ import org.junit.Test;
 public class JmsStubberTest extends BaseJmsStubberTest {
 
   @Test
+  public void shouldAttacheHandlersToDynamicallyCreatedQueues() throws Exception {
+    MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
+    JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
+        .withQueues()
+          .withCommonMessageHandler(LoggingHandler.INSTANCE)
+          .withCommonMessageHandler(messageStore)
+          .withCommonMessageHandler(new ForwardingHandler("out"))
+        .build();
+
+    stubber.start();
+
+    Connection connection = stubber.getConnectionFactory().createConnection();
+    connection.start();
+    Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+    String text = "text to be sent to destinations for testing";
+    sendMessage(session, "in", text);
+
+    TextMessage receivedByIn = waitMessageReceived(session, "in");
+    TextMessage receivedByOut = waitMessageReceived(session, "out");
+
+    assertThat(receivedByIn.getText()).isEqualTo(text);
+    assertThat(receivedByOut.getText()).isEqualTo(text);
+
+    assertThat(messageStore.received("in")).hasSize(1);
+    assertThat(messageStore.received("out")).hasSize(1);
+
+    receivedByIn = messageStore.received("in").get(0);
+    receivedByOut = messageStore.received("out").get(0);
+
+    assertThat(receivedByIn.getText()).isEqualTo(text);
+    assertThat(receivedByOut.getText()).isEqualTo(text);
+
+    session.close();
+    connection.stop();
+    stubber.stop();
+  }
+
+  @Test
   public void shouldStartStubber() throws Exception {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
