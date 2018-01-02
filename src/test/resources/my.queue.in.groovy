@@ -1,1 +1,1 @@
-session.send("my.queue.out", "my.queue.out response")
+session.sendToQueue("my.queue.out", "my.queue.out response")

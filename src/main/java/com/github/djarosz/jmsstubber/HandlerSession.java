@@ -8,11 +8,11 @@ import javax.jms.Topic;
 
 public interface HandlerSession {
 
-  void sendWithReplyTo(String destinationName, String replyDestinationName, String text);
+  void sendToQueueWithReplyTo(String queueName, String replyQueueName, String text);
 
-  void send(String destinationName, String text);
+  void sendToQueue(String queueName, String text);
 
-  void send(String destinationName, Message message);
+  void sendToQueue(String queueName, Message message);
 
   void send(Destination destination, String text);
 

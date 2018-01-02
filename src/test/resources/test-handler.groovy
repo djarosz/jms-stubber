@@ -14,4 +14,4 @@ xmlResponse.'PARENT' {
     }
 }
 
-session.send("out", writer.toString())
+session.sendToQueue("out", writer.toString())

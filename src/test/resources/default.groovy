@@ -1,1 +1,1 @@
-session.send("test.queue.out", "default response")
+session.sendToQueue("test.queue.out", "default response")
