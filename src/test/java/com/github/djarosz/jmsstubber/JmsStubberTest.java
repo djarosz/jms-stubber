@@ -33,10 +33,12 @@ public class JmsStubberTest extends BaseJmsStubberTest {
     connection.start();
     Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-    String text = "text to be sent to destinations for testing";
+    String text = "test msg";
     sendMessage(session, "in", text);
 
+    Thread.sleep(1000);
     TextMessage receivedByIn = waitMessageReceived(session, "in");
+    Thread.sleep(1000);
     TextMessage receivedByOut = waitMessageReceived(session, "out");
 
     assertThat(receivedByIn.getText()).isEqualTo(text);

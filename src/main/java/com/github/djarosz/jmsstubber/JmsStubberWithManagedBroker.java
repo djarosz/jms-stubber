@@ -7,12 +7,12 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 
 @Slf4j
-public class JmsStubberWithEmbeddedBroker extends DefaultJmsStubber {
+public class JmsStubberWithManagedBroker extends DefaultJmsStubber {
 
   private BrokerService broker;
 
   @SneakyThrows
-  public JmsStubberWithEmbeddedBroker(BrokerService broker, DestinationConfig config) {
+  public JmsStubberWithManagedBroker(BrokerService broker, DestinationConfig config) {
     super(new ActiveMQConnectionFactory(broker.getVmConnectorURI()), config);
     this.broker = broker;
   }
