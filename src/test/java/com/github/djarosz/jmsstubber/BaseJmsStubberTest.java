@@ -13,9 +13,9 @@ abstract class BaseJmsStubberTest {
   void sendMessage(Session session, String queueName, String text) throws JMSException {
     Queue queue = session.createQueue(queueName);
     MessageProducer producer = session.createProducer(queue);
-    log.debug("Sending message to queue: {}", queueName);
+    log.debug("Sending message '{}' to queue: {}", text, queueName);
     producer.send(queue, session.createTextMessage(text));
-    log.debug("Sent message to queue: {}", queueName);
+    log.debug("Sent message '{}' to queue: {}", text, queueName);
     producer.close();
   }
 

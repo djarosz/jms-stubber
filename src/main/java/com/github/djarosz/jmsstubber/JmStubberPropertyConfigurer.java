@@ -25,6 +25,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
  * <li>connection.factory.url=
  * <li>connector.uri.1=
  * <li>connector.uri.2=
+ * <li>register.common.handlers.on.all.queues=true</li>
  * <li>queue.handler.1=class_name,constructor_arg1,constructor_arg2
  * <li>queue.handler.2=class_name,constructor_arg1,constructor_arg2
  *
@@ -64,6 +65,10 @@ public class JmStubberPropertyConfigurer {
     } else {
       builder = JmsStubberBuilder
           .amqConnectionFactory(new ActiveMQConnectionFactory(connectionFactoryUri));
+    }
+
+    if (Boolean.valueOf(configProps.getProperty("register.common.handlers.on.all.queues", "false"))) {
+      builder.registerCommonHandlersOnAllQueueus();
     }
   }
 

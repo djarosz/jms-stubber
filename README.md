@@ -35,7 +35,8 @@ There are also two ways to use ActiveMQ
 ### Available message handlers 
 
 - LoggingHandler - Logs received message [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/LoggingHandler.java)
-- ForwardingHandler - Forwards message to specified destination [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/ForwardingHandler.java)
+- ForwardingQueueHandler - Forwards message to specified queue [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/ForwardingQueueHandler.java)
+- ForwardingTopicHandler - Forwards message to specified topic [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/ForwardingTopicHandler.java)
 - MessageCollectingHandler - Used for testing stores every received message in *LinkedList* [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/MessageCollectingHandler.java)
 - GroovyHandler - Executes groovy script for every (evaluated on every message) [see javadoc](src/main/java/com/github/djarosz/jmsstubber/handler/GroovyHandler.java)
 
@@ -78,6 +79,24 @@ xmlResponse.'PARENT' {
 session.send("out", writer.toString())
 
 ```
+
+### Register common handlers on all queues
+
+By specifying *JmsStubberBuilder.registerCommonHandlersOnAllQueueus* or setting
+*register.common.handlers.on.all.queues* property to *true*. You tell JmsStubber to listen 
+on all queues even if they were ones not registered using *JmsStubberBuilder.withQueues()*.
+Such queues will only be assigned *common handlers*.
+
+```java
+JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
+    .registerCommonHandlersOnAllQueues()
+    .withQueues()
+      .withCommonMessageHandler(LoggingHandler.INSTANCE)
+    .build();
+```
+
+This in combination with groovy handler lets you configure generic stubber for which
+behavior can be modified during runtime.
 
 ## Using JmsStubberBuilder
 
@@ -155,7 +174,6 @@ is not very sophisticated.
     - executing groovy script
   - TimerTask periodicly executing groovy script which can insert new message
 - support for topics
-- auto-destination creation and attaching common handlers on queue created event
 - error handling
 - better docs
 

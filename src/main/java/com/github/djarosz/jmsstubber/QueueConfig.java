@@ -9,11 +9,11 @@ import lombok.ToString;
 @Getter
 @ToString
 public class QueueConfig {
-  String name;
+  String queueName;
   List<MessageHandler> messageHandlers;
 
   public QueueConfig(String queueName, MessageHandler... handlers) {
-    this.name = queueName;
+    this.queueName = queueName;
     this.messageHandlers = handlers == null ? Collections.emptyList() : Arrays.asList(handlers);
   }
 }

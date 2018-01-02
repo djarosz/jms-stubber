@@ -4,10 +4,7 @@ import com.github.djarosz.jmsstubber.handler.ResendMessageToOriginDestination;
 import com.github.djarosz.jmsstubber.util.Streams;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.jms.ConnectionFactory;
@@ -24,15 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ActiveMQSession;
-import org.apache.activemq.advisory.AdvisorySupport;
-import org.apache.activemq.command.ActiveMQDestination;
-import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
-import org.apache.activemq.command.ActiveMQTopic;
-import org.apache.activemq.command.DestinationInfo;
-import org.apache.activemq.command.ProducerInfo;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -45,8 +35,6 @@ public class DefaultJmsStubber implements JmsStubber, MessageListener {
 
   private ActiveMQConnection stubberConnection;
   private ActiveMQSession stubberSession;
-
-  private Map<String, MessageListener> attachdQueueHandlers = new ConcurrentHashMap<>();
 
   @Override
   public ConnectionFactory getConnectionFactory() {
@@ -61,10 +49,9 @@ public class DefaultJmsStubber implements JmsStubber, MessageListener {
 
     stubberConnection = (ActiveMQConnection) connectionFactory.createConnection();
     stubberConnection.start();
-    stubberSession = (ActiveMQSession) stubberConnection
-        .createSession(false, Session.AUTO_ACKNOWLEDGE);
+    stubberSession = (ActiveMQSession) stubberConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-    attachListenersOnDynamicalCreatedQueues();
+    attachCommonHandlersOnAllQueues();
     createQueues();
     attachMessageHandlersToQueues();
 
@@ -83,46 +70,21 @@ public class DefaultJmsStubber implements JmsStubber, MessageListener {
     log.info("Done");
   }
 
-  private void attachListenersOnDynamicalCreatedQueues() {
-    ActiveMQQueue anyQueue = new ActiveMQQueue(">");
-    Stream.of(
-        AdvisorySupport.getConnectionAdvisoryTopic(),
-        AdvisorySupport.getDestinationAdvisoryTopic(anyQueue),
-        AdvisorySupport.getProducerAdvisoryTopic(anyQueue),
-        AdvisorySupport.getConsumerAdvisoryTopic(anyQueue),
-        AdvisorySupport.getMessageDLQdAdvisoryTopic(anyQueue),
-        AdvisorySupport.getNoConsumersAdvisoryTopic(anyQueue))
-        .forEach(attachAdvisoryMessageListener());
-  }
-
-  private Consumer<ActiveMQTopic> attachAdvisoryMessageListener() {
-    return destination -> {
-      try {
-        MessageConsumer consumer = stubberSession.createConsumer(destination);
-        consumer.setMessageListener(this);
-      } catch (JMSException e) {
-        log.error("Could not attach advisory message listener to: {}", destination, e);
-      }
-    };
+  @SneakyThrows
+  private void attachCommonHandlersOnAllQueues() {
+    if (config.isRegisterCommonHandlersOnAllQueues()) {
+      ActiveMQQueue anyQueue = new ActiveMQQueue(">?consumer.priority=100");
+      MessageConsumer consumer = stubberSession.createConsumer(anyQueue, STUBBER_PROCESSED_HEADER + " IS NULL");
+      consumer.setMessageListener(this);
+    }
   }
 
   @Override
   public void onMessage(Message msg) {
     try {
-      ActiveMQMessage aMsg = (ActiveMQMessage) msg;
-      ActiveMQDestination dest = null;
-
-      if (aMsg.getDataStructure() instanceof ProducerInfo) {
-        ProducerInfo info = (ProducerInfo) aMsg.getDataStructure();
-        dest = info.getDestination();
-      } else if (aMsg.getDataStructure() instanceof DestinationInfo) {
-        DestinationInfo info = (DestinationInfo) aMsg.getDataStructure();
-        dest = info.getDestination();
-      } else {
-        log.debug("aaa: {}", ToStringBuilder.reflectionToString(msg, ToStringStyle.MULTI_LINE_STYLE));
-      }
-      if (dest != null && dest instanceof ActiveMQQueue) {
-        attachMessageHandlerIfNotAttached((ActiveMQQueue) dest);
+      ActiveMQQueue amqQueue = (ActiveMQQueue) msg.getJMSDestination();
+      if (!config.getQueues().stream().map(QueueConfig::getQueueName).anyMatch(amqQueue.getQueueName()::equals)) {
+        commonMessageListener().onMessage(msg);
       }
     } catch (Exception e) {
       log.error("Could not handle advisory message: {}", ToStringBuilder.reflectionToString(msg), e);
@@ -131,51 +93,35 @@ public class DefaultJmsStubber implements JmsStubber, MessageListener {
 
   private void createQueues() throws JMSException {
     for (QueueConfig queueConfig : config.getQueues()) {
-      log.info("Creating queue: {}", queueConfig.getName());
-      stubberSession.createQueue(queueConfig.getName());
+      log.info("Creating queue: {}", queueConfig.getQueueName());
+      stubberSession.createQueue(queueConfig.getQueueName());
     }
   }
 
   private void attachMessageHandlersToQueues() throws JMSException {
     for (QueueConfig queueConfig : config.getQueues()) {
-      log.info("Stubbing queue: {}", queueConfig.getName());
-      attachMessageHandlerIfNotAttached(queueConfig.getName(), queueConfig.getMessageHandlers());
+      log.info("Stubbing queue: {}", queueConfig.getQueueName());
+      attachMessageHandlerIfNotAttached(queueConfig);
     }
   }
 
   @SneakyThrows
-  private void attachMessageHandlerIfNotAttached(ActiveMQQueue queue) {
-    String queueName = queue.getQueueName();
+  private void attachMessageHandlerIfNotAttached(QueueConfig queueConfig) {
+    String queueName = queueConfig.getQueueName();
+    List<MessageHandler> queueHandlers = queueConfig.getMessageHandlers();
 
-    if (attachdQueueHandlers.containsKey(queueName)) {
-      return;
-    }
-
-    List<MessageHandler> queueHandlers = config.getQueues().stream()
-        .filter(config -> config.getName().equals(queueName))
-        .map(QueueConfig::getMessageHandlers)
-        .findFirst()
-        .orElse(null);
-
-    attachMessageHandlerIfNotAttached(queueName, queueHandlers);
-  }
-
-  @SneakyThrows
-  private void attachMessageHandlerIfNotAttached(String queueName, List<MessageHandler> queueHandlers) {
-    attachdQueueHandlers.computeIfAbsent(queueName, qName -> attachMessageHandler(qName, queueHandlers));
-  }
-
-  @SneakyThrows
-  private MessageListener attachMessageHandler(String queueName, List<MessageHandler> queueHandlers) {
     log.info("Attaching handlers to queue: {}", queueName);
+
     ActiveMQQueue queue = new ActiveMQQueue(queueName + "?consumer.priority=100");
     MessageConsumer consumer = stubberSession.createConsumer(queue, STUBBER_PROCESSED_HEADER + " IS NULL");
-    MessageListener listener = stubberQueueMessageListener(queueHandlers);
-    consumer.setMessageListener(listener);
-    return listener;
+    consumer.setMessageListener(perDestinationMessageListener(queueHandlers));
   }
 
-  private MessageListener stubberQueueMessageListener(List<MessageHandler> queueHandlers) {
+  private MessageListener commonMessageListener() {
+    return perDestinationMessageListener(null);
+  }
+
+  private MessageListener perDestinationMessageListener(List<MessageHandler> queueHandlers) {
     return message -> {
       HandlerSessionImpl handlerSession = new HandlerSessionImpl(stubberConnection);
       Streams.mergeAsStream(

@@ -2,12 +2,13 @@ package com.github.djarosz.jmsstubber;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.github.djarosz.jmsstubber.handler.ForwardingHandler;
 import com.github.djarosz.jmsstubber.handler.GroovyHandler;
 import com.github.djarosz.jmsstubber.handler.LoggingHandler;
 import com.github.djarosz.jmsstubber.handler.MessageCollectingHandler;
+import com.github.djarosz.jmsstubber.handler.QueueForwardingHandler;
 import java.io.File;
 import javax.jms.Connection;
+import javax.jms.Message;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +22,20 @@ public class JmsStubberTest extends BaseJmsStubberTest {
   public void shouldAttacheHandlersToDynamicallyCreatedQueues() throws Exception {
     MessageCollectingHandler<TextMessage> messageStore = new MessageCollectingHandler<>();
     JmsStubber stubber = JmsStubberBuilder.embeddedBroker()
+        .registerCommonHandlersOnAllQueues()
         .withQueues()
           .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
-          .withCommonMessageHandler(new ForwardingHandler("out"))
+          .withCommonMessageHandler(new QueueForwardingHandler("out") {
+            boolean open = true;
+            @Override
+            public void handle(HandlerSession session, Message message) throws Throwable {
+              if (open) {
+                super.handle(session, message);
+                open = false;
+              }
+            }
+          })
         .build();
 
     stubber.start();
@@ -36,9 +47,7 @@ public class JmsStubberTest extends BaseJmsStubberTest {
     String text = "test msg";
     sendMessage(session, "in", text);
 
-    Thread.sleep(1000);
     TextMessage receivedByIn = waitMessageReceived(session, "in");
-    Thread.sleep(1000);
     TextMessage receivedByOut = waitMessageReceived(session, "out");
 
     assertThat(receivedByIn.getText()).isEqualTo(text);
@@ -66,7 +75,7 @@ public class JmsStubberTest extends BaseJmsStubberTest {
           .withCommonMessageHandler(LoggingHandler.INSTANCE)
           .withCommonMessageHandler(messageStore)
           .withQueue("out")
-          .withQueue("in", new ForwardingHandler("out"))
+          .withQueue("in", new QueueForwardingHandler("out"))
         .build();
 
     stubber.start();

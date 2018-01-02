@@ -44,6 +44,11 @@ public class JmsStubberBuilder {
       return this;
     }
 
+    public EmbeddedBrokerBuilder registerCommonHandlersOnAllQueues() {
+      configBuilder.registerCommonHandlersOnAllQueues(true);
+      return this;
+    }
+
     @SneakyThrows
     public JmsStubberBuilder withQueues() {
       embeddedBrokerService = new InMemoryBrokerService(brokerName, connectorUris);
@@ -65,6 +70,11 @@ public class JmsStubberBuilder {
 
   private EmbeddedBrokerBuilder embeddedBrokerBuilder() {
     return new EmbeddedBrokerBuilder();
+  }
+
+  public JmsStubberBuilder registerCommonHandlersOnAllQueueus() {
+    configBuilder.registerCommonHandlersOnAllQueues(true);
+    return this;
   }
 
   public JmsStubberBuilder withQueue(String name, MessageHandler... handlers) {

@@ -9,6 +9,8 @@ import lombok.Singular;
 @Getter
 public class DestinationConfig {
 
+  boolean registerCommonHandlersOnAllQueues;
+
   @Singular("addQueue")
   List<QueueConfig> queues;
 
